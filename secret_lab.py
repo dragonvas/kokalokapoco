@@ -1,4 +1,3 @@
-
 print('«Секретная лаборатория»')
 print('«Система управления агентами запущена.»')
 print('«Для входа необходимо пройти регистрацию.»')
@@ -15,16 +14,30 @@ class Agent:
         print(f'Возраст: {self.age}')
         print(f'Позывной: {self.zov}')
     def secret_tasks(self):
-        age = {self.age}
-        age = int(age)
-        if age >= 14:
-            pass
+        print('1. Убить курицу Лорд Мастер Граф Линьганигуль в чикен гане.')
+        print('2. Причуть пропанвый балон.')
+        print('3. Возродить Алексея Овального.')
+        print('4. Установить линукс')
+        print('5. Блаблеблеблю Аблебблебелю блю бле')
+    def check_access(self):
+        age1 = int(self.age)
+        if age1 >= 14:
+            return True
         else:
-            pass
-
+            print('Доступ запрёшён из-за возраста, требуется разрешение')
+            return False
 print("Чтобы получить доступ к лабортории надо пройти регистрацию")
 agent = Agent(input('Имя:'),int(input('Возраст:')),input('Позывной:'))
 print('Регистрация успешна!')
-agent.hello()
-agent.show_info()
-agent.secret_tasks()
+if agent.check_access():
+    agent.hello()
+while True:
+    print('1. Информацня')
+    print('2. Задания')
+    choose=int(input('Что вы хотите сделать?'))
+    if choose == 1:
+        agent.show_info()
+    elif choose == 2:
+        agent.secret_tasks()
+    else:
+        print('Нет такого действия')
