@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Секретная лаборатория: база данных агентов</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Orbitron & Inter/Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        lab: {
+                            bg: '#060a0f',
+                            card: '#0c121c',
+                            panel: '#121a28',
+                            border: '#1a2638',
+                            borderGlow: '#223854',
+                            green: '#00ff88',
+                            greenGlow: 'rgba(0, 255, 136, 0.25)',
+                            cyan: '#00e1ff',
+                            cyanGlow: 'rgba(0, 225, 255, 0.25)',
+                            yellow: '#ffb700',
+                            red: '#ff3366',
+                            text: '#94a3b8',
+                            heading: '#f8fafc'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        title: ['Orbitron', 'sans-serif'],
+                        mono: ['"Fira Code"', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #060a0f;
+            color: #94a3b8;
+            font-family: 'Inter', sans-serif;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 255, 136, 0.03) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(0, 225, 255, 0.03) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        /* Glassmorphism Card Style */
+        .glass-card {
+            background: rgba(12, 18, 28, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid #1a2638;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glass-card-active {
+            border-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.15), 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .glow-title {
+            text-shadow: 0 0 12px rgba(0, 255, 136, 0.4);
+        }
+
+        .glow-cyan {
+            text-shadow: 0 0 12px rgba(0, 225, 255, 0.4);
+        }
+
+        /* Scanline Overlay Effect */
+        .scanline {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 50;
+            opacity: 0.6;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #060a0f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1a2638;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00ff88;
+        }
+
+        /* Smooth tab transition */
+        .tab-btn {
+            transition: all 0.25s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative selection:bg-lab-green selection:text-black">
+
+    <div class="scanline"></div>
+
+    <header class="border-b border-lab-border bg-lab-card/90 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-11 h-11 rounded-lg bg-lab-green/10 border border-lab-green flex items-center justify-center text-lab-green shadow-[0_0_15px_rgba(0,255,136,0.2)]">
+                    <i class="fa-solid fa-database text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-title font-bold text-lg md:text-xl text-lab-heading tracking-wide glow-title">
+                        СЕКРЕТНАЯ ЛАБОРАТОРИЯ: БАЗА ДАННЫХ АГЕНТОВ
+                    </h1>
+                    <p class="text-xs text-lab-text flex items-center gap-2">
+                        <span class="inline-block w-2 h-2 rounded-full bg-lab-green animate-pulse"></span>
+                        Блок 2 · интерактивное руководство
+                    </p>
+                </div>
+            </div>
+            <div class="w-full md:w-80 bg-lab-panel p-3 rounded-lg border border-lab-border flex flex-col gap-1.5">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-lab-heading font-semibold flex items-center gap-1.5">
+                        <i class="fa-solid fa-bars-progress text-lab-green"></i> ПРОГРЕСС ВЫПОЛНЕНИЯ
+                    </span>
+                    <span id="progressText" class="text-lab-green font-mono font-bold">0% (0/0)</span>
+                </div>
+                <div class="w-full bg-lab-bg h-2.5 rounded-full overflow-hidden border border-lab-border">
+                    <div id="progressBar" class="bg-gradient-to-r from-lab-green to-lab-cyan h-full w-0 transition-all duration-300"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full space-y-8 relative z-10">
+
+        <div class="glass-card rounded-xl p-6 relative overflow-hidden border-l-4 border-l-lab-green">
+            <div class="absolute -right-10 -bottom-10 opacity-5 text-lab-green text-9xl pointer-events-none font-title">
+                <i class="fa-solid fa-database"></i>
+            </div>
+            <div class="relative z-10 space-y-3">
+                <div class="flex items-center gap-2 text-lab-green text-xs font-bold tracking-wider uppercase font-mono">
+                    <i class="fa-solid fa-book-open"></i> Сюжет
+                </div>
+                <h2 class="font-title font-bold text-xl md:text-2xl text-lab-heading">База данных агентов</h2>
+                <p class="text-lab-heading/90 text-sm md:text-base leading-relaxed max-w-4xl">
+                    Ты уже прошел регистрацию в секретной лаборатории, но у системы обнаружилась проблема: после закрытия программы данные агента исчезают.
+                </p>
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-lab-green/10 border border-lab-green/30 text-lab-green text-xs font-semibold">
+                    <i class="fa-solid fa-bullseye"></i>
+                    Твоя задача – усовершенствовать лабораторную систему и подключить базу данных SQLite.
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <h3 class="font-title font-bold text-base text-lab-heading flex items-center gap-2">
+                <i class="fa-solid fa-bullseye text-lab-cyan"></i> ЧТО ДОЛЖНА УМЕТЬ ЛАБОРАТОРИЯ?
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass-card rounded-xl p-5 space-y-2">
+                    <div class="flex items-center gap-2 text-lab-green font-bold text-sm"><i class="fa-solid fa-floppy-disk"></i> 1. Сохранять агентов</div>
+                    <p class="text-xs text-lab-text leading-relaxed">Теперь лаборатория сможет сохранять информацию об агентах, и она не исчезнет после завершения программы.</p>
+                </div>
+                <div class="glass-card rounded-xl p-5 space-y-2">
+                    <div class="flex items-center gap-2 text-lab-green font-bold text-sm"><i class="fa-solid fa-user-secret"></i> 2. Находить по позывному</div>
+                    <p class="text-xs text-lab-text leading-relaxed">Лаборатория сможет находить зарегистрированных пользователей по позывному.</p>
+                </div>
+                <div class="glass-card rounded-xl p-5 space-y-2">
+                    <div class="flex items-center gap-2 text-lab-green font-bold text-sm"><i class="fa-solid fa-users"></i> 3. Выводить всех сотрудников</div>
+                    <p class="text-xs text-lab-text leading-relaxed">Лаборатория сможет выводить список всех сотрудников.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="flex justify-between items-center">
+                <h3 class="font-title font-bold text-base text-lab-heading flex items-center gap-2">
+                    <i class="fa-solid fa-map-location-dot text-lab-cyan"></i> ЭТАПЫ ВЫПОЛНЕНИЯ
+                </h3>
+                <span class="text-xs text-lab-text">Выберите этап для просмотра подробной инструкции</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+                <button onclick="selectStep(1)" id="tabBtn-1" class="tab-btn p-3 rounded-lg bg-lab-panel border border-lab-border hover:border-lab-green text-center flex flex-col items-center justify-center gap-1 group">
+                    <span class="text-[10px] font-mono text-lab-text uppercase group-hover:text-lab-green">Этап 1</span>
+                    <span class="text-xs font-bold text-lab-heading flex items-center gap-1">
+                        Шаг 1 <i id="tabCheck-1" class="fa-solid fa-circle-check text-lab-green text-xs hidden"></i>
+                    </span>
+                </button>
+                <button onclick="selectStep(2)" id="tabBtn-2" class="tab-btn p-3 rounded-lg bg-lab-panel border border-lab-border hover:border-lab-green text-center flex flex-col items-center justify-center gap-1 group">
+                    <span class="text-[10px] font-mono text-lab-text uppercase group-hover:text-lab-green">Этап 2</span>
+                    <span class="text-xs font-bold text-lab-heading flex items-center gap-1">
+                        Шаг 2 <i id="tabCheck-2" class="fa-solid fa-circle-check text-lab-green text-xs hidden"></i>
+                    </span>
+                </button>
+                <button onclick="selectStep(3)" id="tabBtn-3" class="tab-btn p-3 rounded-lg bg-lab-panel border border-lab-border hover:border-lab-green text-center flex flex-col items-center justify-center gap-1 group">
+                    <span class="text-[10px] font-mono text-lab-text uppercase group-hover:text-lab-green">Этап 3</span>
+                    <span class="text-xs font-bold text-lab-heading flex items-center gap-1">
+                        Шаг 3 <i id="tabCheck-3" class="fa-solid fa-circle-check text-lab-green text-xs hidden"></i>
+                    </span>
+                </button>
+                <button onclick="selectStep(4)" id="tabBtn-4" class="tab-btn p-3 rounded-lg bg-lab-panel border border-lab-border hover:border-lab-green text-center flex flex-col items-center justify-center gap-1 group">
+                    <span class="text-[10px] font-mono text-lab-text uppercase group-hover:text-lab-green">Этап 4</span>
+                    <span class="text-xs font-bold text-lab-heading flex items-center gap-1">
+                        Шаг 4 <i id="tabCheck-4" class="fa-solid fa-circle-check text-lab-green text-xs hidden"></i>
+                    </span>
+                </button>
+                <button onclick="selectStep(5)" id="tabBtn-5" class="tab-btn p-3 rounded-lg bg-lab-panel border border-lab-border hover:border-lab-green text-center flex flex-col items-center justify-center gap-1 group">
+                    <span class="text-[10px] font-mono text-lab-text uppercase group-hover:text-lab-green">Этап 5</span>
+                    <span class="text-xs font-bold text-lab-heading flex items-center gap-1">
+                        Шаг 5 <i id="tabCheck-5" class="fa-solid fa-circle-check text-lab-green text-xs hidden"></i>
+                    </span>
+                </button>
+                <button onclick="selectStep(6)" id="tabBtn-6" class="tab-btn p-3 rounded-lg bg-lab-panel border border-lab-border hover:border-lab-green text-center flex flex-col items-center justify-center gap-1 group">
+                    <span class="text-[10px] font-mono text-lab-text uppercase group-hover:text-lab-green">Этап 6</span>
+                    <span class="text-xs font-bold text-lab-heading flex items-center gap-1">
+                        Шаг 6 <i id="tabCheck-6" class="fa-solid fa-circle-check text-lab-green text-xs hidden"></i>
+                    </span>
+                </button>
+            </div>
+        </div>
+
+        <div id="stepCardContainer" class="glass-card rounded-xl p-6 md:p-8 space-y-6"></div>
+
+        <div class="glass-card rounded-xl p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-lab-border pb-3">
+                <h3 class="font-title font-bold text-base text-lab-heading flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-lab-green"></i> ПОЛНЫЙ ЧЕК-ЛИСТ ПРОЕКТА
+                </h3>
+                <button onclick="resetAllProgress()" class="text-xs text-lab-text hover:text-lab-red transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-left"></i> Сбросить прогресс
+                </button>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="globalChecklistContainer"></div>
+        </div>
+
+    </main>
+
+    <footer class="border-t border-lab-border bg-lab-card/60 backdrop-blur py-4 text-center text-xs text-lab-text relative z-30">
+        <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <p>Домашнее задание «Секретная лаборатория: база данных агентов» • Python Developer</p>
+            <p class="font-mono text-[11px] text-lab-text/70">Статус системы: <span class="text-lab-green">ГОТОВА К РАБОТЕ</span></p>
+        </div>
+    </footer>
+
+    <script>
+        // Helpers
+        const code = (t, c = 'cyan') => `<code class="px-2 py-0.5 rounded bg-lab-panel border border-lab-border text-lab-${c} font-mono text-sm">${t}</code>`;
+        const P = (t) => `<p class="text-base text-lab-heading font-medium leading-relaxed">${t}</p>`;
+        const UL = (items) => `<ul class="space-y-2 text-sm text-lab-heading pl-2">${items.map(i => `<li class="flex items-start gap-2"><i class="fa-solid fa-angle-right text-lab-green mt-1"></i><span>${i}</span></li>`).join('')}</ul>`;
+        const SUB = (items) => `<ul class="space-y-1.5 text-sm text-lab-heading pl-8">${items.map(i => `<li class="flex items-start gap-2"><i class="fa-solid fa-xmark text-lab-yellow mt-1 text-xs"></i><span>${i}</span></li>`).join('')}</ul>`;
+        const HINT = (t) => `<div class="p-4 rounded-lg bg-lab-yellow/10 border border-lab-yellow/30 text-lab-yellow text-sm flex items-start gap-3"><i class="fa-solid fa-lightbulb text-lg mt-0.5"></i><div><strong>Подсказка:</strong> ${t}</div></div>`;
+        const NOTE = (title, items) => `<div class="p-4 rounded-lg bg-lab-cyan/10 border border-lab-cyan/30 space-y-2 text-sm"><div class="font-bold text-lab-cyan uppercase tracking-wider text-xs"><i class="fa-solid fa-circle-info"></i> ${title}</div><ul class="space-y-2 text-lab-heading leading-relaxed">${items.map(i => `<li class="flex items-start gap-2"><i class="fa-solid fa-angle-right text-lab-cyan mt-1"></i><span>${i}</span></li>`).join('')}</ul></div>`;
+
+        const stepsContent = {
+            1: {
+                id: 1,
+                title: 'Шаг 1. Подготовь проект',
+                badge: 'Подготовка',
+                icon: 'fa-folder-open',
+                contentHtml: UL([
+                    'Открой свой проект.',
+                    `Найди класс ${code('User')}, методы работы с агентом и меню.`,
+                    'Проверь, что программа запускается и основные функции работают.',
+                    'Исправь ошибки и недочеты, если они возникли.'
+                ]),
+                checkpoints: [
+                    { id: 's1_1', text: 'Проект открыт' },
+                    { id: 's1_2', text: 'Найдены класс User, методы работы с агентом и меню' },
+                    { id: 's1_3', text: 'Программа запускается, основные функции работают' },
+                    { id: 's1_4', text: 'Ошибки и недочеты исправлены' }
+                ]
+            },
+            2: {
+                id: 2,
+                title: 'Шаг 2. Подключите базу данных',
+                badge: 'sqlite3 · таблица agents',
+                icon: 'fa-database',
+                contentHtml: P('Теперь секретной лаборатории нужно научиться хранить информацию об агентах, чтобы она не исчезла после завершения программы.')
+                    + UL([
+                        `Подключи библиотеку ${code('sqlite3', 'yellow')}.`,
+                        `Создай подключение к базе данных ${code('database.db', 'yellow')}.`,
+                        `Подготовь SQL-запрос для создания таблицы ${code('agents', 'yellow')}, если её еще нет.`
+                    ])
+                    + P('В таблице должны храниться следующие данные:')
+                    + `<div class="overflow-x-auto rounded-lg border border-lab-border"><table class="w-full text-sm text-left">
+                        <thead class="bg-lab-panel text-lab-heading font-mono text-xs uppercase"><tr><th class="px-4 py-2.5 border-b border-lab-border">Поле</th><th class="px-4 py-2.5 border-b border-lab-border">Для чего нужно</th></tr></thead>
+                        <tbody class="text-lab-heading">
+                            <tr class="border-b border-lab-border"><td class="px-4 py-2.5 font-mono text-lab-green">id</td><td class="px-4 py-2.5">Уникальный номер агента</td></tr>
+                            <tr class="border-b border-lab-border"><td class="px-4 py-2.5 font-mono text-lab-green">name</td><td class="px-4 py-2.5">Имя агента</td></tr>
+                            <tr class="border-b border-lab-border"><td class="px-4 py-2.5 font-mono text-lab-green">age</td><td class="px-4 py-2.5">Возраст агента</td></tr>
+                            <tr><td class="px-4 py-2.5 font-mono text-lab-green">codename</td><td class="px-4 py-2.5">Уникальный позывной</td></tr>
+                        </tbody></table></div>`
+                    + HINT(`для уникального номера подойдет ${code('INTEGER PRIMARY KEY AUTOINCREMENT', 'yellow')}, а для позывного – ограничение ${code('UNIQUE', 'yellow')}.`)
+                    + P('После выполнения запроса проверьте, что таблица создается без ошибок.'),
+                checkpoints: [
+                    { id: 's2_1', text: 'Подключена библиотека sqlite3' },
+                    { id: 's2_2', text: 'Создано подключение к базе данных database.db' },
+                    { id: 's2_3', text: 'Подготовлен SQL-запрос создания таблицы agents (если её еще нет) с полями id, name, age, codename' },
+                    { id: 's2_4', text: 'id — INTEGER PRIMARY KEY AUTOINCREMENT, codename — UNIQUE' },
+                    { id: 's2_5', text: 'Таблица создается без ошибок' }
+                ]
+            },
+            3: {
+                id: 3,
+                title: 'Шаг 3. Научите лабораторию сохранять новых агентов и входить в лабораторию',
+                badge: 'Функция register_agent()',
+                icon: 'fa-user-plus',
+                contentHtml: P('Сейчас регистрация создаёт объект агента. Теперь необходимо сохранять его данные в базе данных и открывать меню агента после успешной регистрации.')
+                    + UL([
+                        `Создайте функцию ${code('register_agent()', 'yellow')}.`,
+                        'Запросите у пользователя имя агента, возраст и позывное имя.',
+                        'Проверьте введённые данные:'
+                    ])
+                    + SUB([
+                        'имя не должно быть пустым;',
+                        'позывное имя не должно быть пустым;',
+                        'возраст необходимо вводить числом;',
+                        'возраст не может быть отрицательным.'
+                    ])
+                    + P(`Для проверки возраста используйте конструкцию ${code('try-except')}, чтобы обработать ошибку, если пользователь введёт не число. Выведите понятное сообщение и предложите повторить ввод.`)
+                    + UL([
+                        `После успешной проверки подготовьте SQL-запрос ${code('INSERT INTO', 'yellow')} для добавления нового агента в таблицу.`,
+                        'Передайте данные пользователя через параметры запроса, а не объединяйте их в SQL-команду строками.',
+                        `Выполните запрос и сохраните изменения с помощью ${code('commit()', 'yellow')}.`,
+                        `После успешной регистрации создайте объект ${code('User')} на основе введённых данных и откройте меню этого агента, чтобы он мог продолжить работу в лаборатории.`,
+                        `Обработайте возможные ошибки с помощью ${code('try-except')}. Если агент с таким позывным именем уже зарегистрирован, сообщите об этом пользователю и не создавайте дубликат. Также предусмотрите обработку ошибок базы данных и выведите понятное сообщение.`
+                    ])
+                    + NOTE('Подсказки по использованию try-except:', [
+                        `Для обработки ошибки преобразования возраста используйте ${code('except ValueError')}. Например, если пользователь введёт abc вместо числа, программа не должна завершаться с ошибкой.`,
+                        `Ошибку нарушения ограничения UNIQUE для позывного обрабатывайте с помощью ${code('except sqlite3.IntegrityError')}. Она возникает, когда агент с таким позывным уже есть в таблице.`,
+                        `В блоке ${code('except sqlite3.IntegrityError')} выведите сообщение вроде: «Агент с таким позывным уже зарегистрирован».`,
+                        `Для остальных ошибок SQLite используйте ${code('except sqlite3.Error')}. Такое исключение поможет обработать проблемы с подключением, SQL-запросом или таблицей.`
+                    ])
+                    + UL([`После ошибки регистрации не вызывайте ${code('commit()', 'yellow')}. Если запрос завершился ошибкой, изменения сохранять не нужно.`]),
+                checkpoints: [
+                    { id: 's3_1', text: 'Создана функция register_agent(), запрашивающая имя, возраст и позывное имя' },
+                    { id: 's3_2', text: 'Проверка: имя и позывное не пустые' },
+                    { id: 's3_3', text: 'Проверка: возраст — число и не отрицательный (try-except ValueError, понятное сообщение и повтор ввода)' },
+                    { id: 's3_4', text: 'INSERT INTO с параметрами запроса (без склейки строк), затем commit()' },
+                    { id: 's3_5', text: 'После успешной регистрации создается объект User и открывается меню агента' },
+                    { id: 's3_6', text: 'Обработаны sqlite3.IntegrityError (дубликат не создается) и sqlite3.Error' },
+                    { id: 's3_7', text: 'После ошибки регистрации commit() не вызывается' }
+                ]
+            },
+            4: {
+                id: 4,
+                title: 'Шаг 4. Реализуйте повторный вход агента',
+                badge: 'SELECT · fetchone()',
+                icon: 'fa-right-to-bracket',
+                contentHtml: P('Позывной агента должен быть уникальным. Если пользователь вводит позывной, который уже есть в базе данных, создавать дубликат нельзя. Вместо этого нужно выполнить повторный вход существующего агента.')
+                    + UL([
+                        `В блоке ${code('except sqlite3.IntegrityError')} найдите запись с введённым позывным с помощью запроса ${code('SELECT', 'yellow')}.`,
+                        'Передайте введённый позывной в запрос через параметр, а не объединяйте его со строкой SQL.',
+                        `Получите найденную запись методом ${code('fetchone()', 'yellow')}.`,
+                        'Проверьте, что запись действительно найдена.',
+                        `На основе полученных данных создайте объект ${code('User')}. Например, если запрос возвращает поля id, name, age, codename, используйте значения имени, возраста и позывного из найденной записи.`,
+                        'Откройте меню этого агента, чтобы он мог продолжить работу в лаборатории.',
+                        'Если запись найти не удалось, выведите понятное сообщение.'
+                    ]),
+                checkpoints: [
+                    { id: 's4_1', text: 'В блоке except sqlite3.IntegrityError выполняется SELECT по введённому позывному' },
+                    { id: 's4_2', text: 'Позывной передан через параметр запроса, а не склеен со строкой SQL' },
+                    { id: 's4_3', text: 'Запись получена методом fetchone() и проверено, что она найдена' },
+                    { id: 's4_4', text: 'Объект User создан из имени, возраста и позывного найденной записи' },
+                    { id: 's4_5', text: 'Открыто меню агента для повторного входа' },
+                    { id: 's4_6', text: 'Если запись не найдена, выводится понятное сообщение' }
+                ]
+            },
+            5: {
+                id: 5,
+                title: 'Шаг 5. Выведите список всех агентов',
+                badge: 'Функция show_all_agents()',
+                icon: 'fa-users',
+                contentHtml: P('Руководителю лаборатории необходимо видеть всех зарегистрированных участников.')
+                    + UL([
+                        `Создайте функцию ${code('show_all_agents()', 'yellow')}.`,
+                        'Подготовьте запрос, который получает все записи из таблицы agents.',
+                        `Выполните запрос и используйте ${code('fetchall()', 'yellow')}.`,
+                        'Переберите полученный список циклом.',
+                        'Для каждого агента выведите имя, возраст и позывной.',
+                        'Если в базе данных нет ни одного агента, выведите соответствующее сообщение.'
+                    ]),
+                checkpoints: [
+                    { id: 's5_1', text: 'Создана функция show_all_agents()' },
+                    { id: 's5_2', text: 'Запрос получает все записи из таблицы agents, используется fetchall()' },
+                    { id: 's5_3', text: 'Список перебирается циклом, для каждого агента выводятся имя, возраст и позывной' },
+                    { id: 's5_4', text: 'Если агентов нет, выводится соответствующее сообщение' }
+                ]
+            },
+            6: {
+                id: 6,
+                title: 'Шаг 6. Обновите главное меню',
+                badge: 'show_menu() и main()',
+                icon: 'fa-list',
+                contentHtml: P('В этом шаге разделите меню программы на две части:')
+                    + UL([
+                        `функцию ${code('show_menu()', 'green')}, в которой будет находиться меню агента после успешной регистрации или повторного входа;`,
+                        `функцию ${code('main()', 'green')}, в которой останется главное меню программы.`
+                    ])
+                    + P(`После успешной регистрации или повторного входа вызывайте ${code('show_menu()')} для созданного объекта ${code('User')}. Главное меню в ${code('main()')} не должно автоматически открывать меню агента: оно отвечает только за выбор основных действий программы.`)
+                    + P(`В главном меню ${code('main()')} должны быть доступны следующие действия:`)
+                    + UL([
+                        'Зарегистрироваться или войти в лабораторию.',
+                        'Показать список всех агентов.',
+                        'Выйти из программы.'
+                    ])
+                    + P('Для каждого пункта предусмотрите отдельное действие. Если пользователь вводит неизвестную команду, программа должна сообщить об ошибке и предложить повторить ввод.'),
+                checkpoints: [
+                    { id: 's6_1', text: 'Меню агента вынесено в функцию show_menu()' },
+                    { id: 's6_2', text: 'Главное меню осталось в функции main()' },
+                    { id: 's6_3', text: 'После регистрации или повторного входа вызывается show_menu() для объекта User; main() не открывает меню агента автоматически' },
+                    { id: 's6_4', text: 'В main() три пункта: зарегистрироваться или войти; показать всех агентов; выйти' },
+                    { id: 's6_5', text: 'При неизвестной команде выводится ошибка и предлагается повторить ввод' }
+                ]
+            }
+        };
+
+        let currentActiveStep = 1;
+        let userProgress = {};
+        try { userProgress = JSON.parse(localStorage.getItem('agents_db_guide_progress')) || {}; } catch (e) {}
+        const saveProgress = () => { try { localStorage.setItem('agents_db_guide_progress', JSON.stringify(userProgress)); } catch (e) {} };
+
+        window.onload = function() {
+            selectStep(1);
+            renderGlobalChecklist();
+            updateProgressUI();
+        };
+
+        function selectStep(stepId) {
+            currentActiveStep = stepId;
+
+            for (let i = 1; i <= 6; i++) {
+                const btn = document.getElementById(`tabBtn-${i}`);
+                btn.className = (i === stepId)
+                    ? "tab-btn p-3 rounded-lg bg-lab-panel border-2 border-lab-green text-center flex flex-col items-center justify-center gap-1 glass-card-active"
+                    : "tab-btn p-3 rounded-lg bg-lab-panel border border-lab-border hover:border-lab-green text-center flex flex-col items-center justify-center gap-1 group";
+            }
+
+            const stepData = stepsContent[stepId];
+            const container = document.getElementById('stepCardContainer');
+
+            let html = `
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-lab-border pb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 shrink-0 rounded-lg bg-lab-green/10 border border-lab-green text-lab-green flex items-center justify-center text-lg">
+                            <i class="fa-solid ${stepData.icon}"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs font-mono uppercase text-lab-green">${stepData.badge}</span>
+                            <h2 class="font-title font-bold text-lg md:text-xl text-lab-heading">${stepData.title}</h2>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono bg-lab-panel px-3 py-1.5 rounded-full border border-lab-border text-lab-text whitespace-nowrap">Шаг ${stepId} из 6</span>
+                </div>
+
+                <div class="space-y-4">${stepData.contentHtml}</div>
+
+                <div class="pt-4 border-t border-lab-border space-y-3">
+                    <div class="text-xs font-bold text-lab-heading uppercase tracking-wider flex items-center gap-2 font-mono">
+                        <i class="fa-solid fa-square-check text-lab-green"></i> Отметить выполнение шага:
+                    </div>
+                    <div class="space-y-2">
+            `;
+
+            stepData.checkpoints.forEach(cp => {
+                const isChecked = userProgress[cp.id] ? 'checked' : '';
+                html += `
+                    <label class="flex items-start gap-3 p-3 rounded-lg bg-lab-panel/60 border border-lab-border hover:border-lab-borderGlow cursor-pointer transition">
+                        <input type="checkbox" onchange="toggleTask('${cp.id}')" ${isChecked}
+                            class="mt-0.5 w-4 h-4 accent-lab-green rounded bg-lab-bg border-lab-border focus:ring-0">
+                        <span class="text-xs md:text-sm text-lab-heading leading-snug">${cp.text}</span>
+                    </label>
+                `;
+            });
+
+            html += `</div></div>`;
+            container.innerHTML = html;
+        }
+
+        function toggleTask(taskId) {
+            userProgress[taskId] = !userProgress[taskId];
+            saveProgress();
+            updateProgressUI();
+            selectStep(currentActiveStep);
+            renderGlobalChecklist();
+        }
+
+        function renderGlobalChecklist() {
+            const container = document.getElementById("globalChecklistContainer");
+            let html = '';
+            Object.keys(stepsContent).forEach(stepId => {
+                stepsContent[stepId].checkpoints.forEach(cp => {
+                    const isChecked = userProgress[cp.id] ? 'checked' : '';
+                    html += `
+                        <label class="flex items-start gap-2.5 p-2.5 rounded bg-lab-panel/40 border border-lab-border hover:border-lab-borderGlow cursor-pointer text-xs">
+                            <input type="checkbox" onchange="toggleTask('${cp.id}')" ${isChecked}
+                                class="mt-0.5 w-3.5 h-3.5 accent-lab-green rounded bg-lab-bg border-lab-border">
+                            <span class="text-lab-heading ${isChecked ? 'line-through text-lab-text' : ''}">${cp.text}</span>
+                        </label>
+                    `;
+                });
+            });
+            container.innerHTML = html;
+        }
+
+        function updateProgressUI() {
+            let totalTasks = 0, completedTasks = 0;
+            Object.keys(stepsContent).forEach(stepId => {
+                const checkpoints = stepsContent[stepId].checkpoints;
+                let stepComplete = true;
+                checkpoints.forEach(cp => {
+                    totalTasks++;
+                    if (userProgress[cp.id]) completedTasks++; else stepComplete = false;
+                });
+                const icon = document.getElementById(`tabCheck-${stepId}`);
+                if (icon) icon.classList.toggle('hidden', !stepComplete);
+            });
+            const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            document.getElementById("progressBar").style.width = percentage + "%";
+            document.getElementById("progressText").innerText = `${percentage}% (${completedTasks}/${totalTasks})`;
+        }
+
+        function resetAllProgress() {
+            if (confirm("Вы уверены, что хотите сбросить отмеченный прогресс выполнения?")) {
+                userProgress = {};
+                try { localStorage.removeItem('agents_db_guide_progress'); } catch (e) {}
+                updateProgressUI();
+                selectStep(currentActiveStep);
+                renderGlobalChecklist();
+            }
+        }
+    </script>
+</body>
+</html>
