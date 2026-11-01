@@ -1,3 +1,17 @@
+import sqlite3
+
+conn = sqlite3.connect("UltraSecretDatabase.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS agents(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL,
+        age INTEGER NOT NULL,
+        codename TEXT UNIQUE NOT NULL
+    )
+""")
+conn.commit()
 print('«Секретная лаборатория»')
 print('«Система управления агентами запущена.»')
 print('«Для входа необходимо пройти регистрацию.»')
@@ -26,9 +40,34 @@ class Agent:
         else:
             print('Доступ запрёшён из-за возраста, требуется разрешение')
             return False
-print("Чтобы получить доступ к лабортории надо пройти регистрацию")
-agent = Agent(input('Имя:'),int(input('Возраст:')),input('Позывной:'))
-print('Регистрация успешна!')
+def register():
+    global name, age, zov
+    while True:
+        try:
+            print("Чтобы получить доступ к лабортории надо пройти регистрацию")
+            name=input('Имя:')
+            age=int(input('Возраст:'))
+            zov=input('Позывной:')
+            cursor.execute(
+                "INSERT INTO agents (name, age, codename) VALUES (?)",
+                (name, age, zov)
+            )
+            conn.commit()
+            break
+        except ValueError:
+            print('Ошибка! Возраст должен быть числом!')
+        except sqlite3.IntegrityError:
+            print('Ошибка! Агент с таким именем уже зарегистрирован!')
+        except sqlite3.Error:
+            print('Произошла ошибка при обрашении к базе данных')
+register()
+cursor.execute(
+        "SELECT id name age FROM agents WHERE name = ?",
+        (name,)
+     )
+conn.commit()
+
+agent=cursor.fetchone()
 if agent.check_access():
     agent.hello()
 while True:
